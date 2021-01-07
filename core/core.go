@@ -45,6 +45,7 @@ import (
 	"github.com/textileio/textile/v2/api/usersd"
 	upb "github.com/textileio/textile/v2/api/usersd/pb"
 	"github.com/textileio/textile/v2/buckets/archive"
+	"github.com/textileio/textile/v2/buckets/retrieval"
 	"github.com/textileio/textile/v2/dns"
 	"github.com/textileio/textile/v2/email"
 	"github.com/textileio/textile/v2/gateway"
@@ -138,7 +139,7 @@ type Textile struct {
 	mail  *tdb.Mail
 
 	archiveTracker *archive.Tracker
-	filRetrieval   *archive.FilRetrieval
+	filRetrieval   *retrieval.FilRetrieval
 	buckLocks      *nutil.SemaphorePool
 
 	ipnsm *ipns.Manager
@@ -390,10 +391,6 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 	filRetrievalDS := kt.WrapTxnDatastore(t.ts, ktipfs.PrefixTransform{
 		Prefix: datastore.NewKey("buckets/filretrieval"),
 	})
-	t.filRetrieval, err = archive.NewFilRetrieval(filRetrievalDS, t.pc)
-	if err != nil {
-		return nil, err
-	}
 
 	t.buckLocks = nutil.NewSemaphorePool(1)
 	bs := &bucketsd.Service{
@@ -410,6 +407,11 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 		Semaphores:                t.buckLocks,
 		MaxBucketSize:             conf.MaxBucketSize,
 		MaxBucketArchiveRepFactor: conf.BucketArchiveMaxRepFactor,
+	}
+
+	t.filRetrieval, err = retrieval.NewFilRetrieval(filRetrievalDS, t.pc, bs)
+	if err != nil {
+		return nil, err
 	}
 
 	// Start serving
