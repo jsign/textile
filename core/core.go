@@ -374,19 +374,6 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 			BillingClient: t.bc,
 		}
 	}
-	if conf.Hub {
-		t.archiveTracker, err = archive.New(
-			t.collections,
-			t.bucks,
-			t.pc,
-			t.internalHubSession,
-			conf.ArchiveJobPollIntervalSlow,
-			conf.ArchiveJobPollIntervalFast,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	filRetrievalDS := kt.WrapTxnDatastore(t.ts, ktipfs.PrefixTransform{
 		Prefix: datastore.NewKey("buckets/filretrieval"),
@@ -409,9 +396,24 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 		MaxBucketArchiveRepFactor: conf.BucketArchiveMaxRepFactor,
 	}
 
-	t.filRetrieval, err = retrieval.NewFilRetrieval(filRetrievalDS, t.pc, bs)
+	t.filRetrieval, err = retrieval.NewFilRetrieval(filRetrievalDS, t.pc, bs, CYLCIC)
 	if err != nil {
 		return nil, err
+	}
+
+	if conf.Hub {
+		t.archiveTracker, err = archive.New(
+			t.collections,
+			t.bucks,
+			t.pc,
+			t.internalHubSession,
+			conf.ArchiveJobPollIntervalSlow,
+			conf.ArchiveJobPollIntervalFast,
+			t.filRetrieval,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Start serving
