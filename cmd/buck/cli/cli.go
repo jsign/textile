@@ -45,8 +45,9 @@ func Init(baseCmd *cobra.Command) {
 		decryptCmd,
 		archiveCmd,
 		rolesCmd,
+		archivesCmd,
 	)
-	archiveCmd.AddCommand(defaultArchiveConfigCmd, setDefaultArchiveConfigCmd, archiveWatchCmd, archivesCmd)
+	archiveCmd.AddCommand(defaultArchiveConfigCmd, setDefaultArchiveConfigCmd, archiveWatchCmd, archiveLsCmd)
 	rolesCmd.AddCommand(rolesGrantCmd, rolesLsCmd)
 
 	baseCmd.PersistentFlags().String("key", "", "Bucket key")
@@ -80,6 +81,8 @@ func Init(baseCmd *cobra.Command) {
 	archiveCmd.Flags().BoolP("yes", "y", false, "Skips the confirmation prompt if true")
 
 	rolesGrantCmd.Flags().StringP("role", "r", "", "Access role: none, reader, writer, admin")
+
+	archivesCmd.AddCommand(archivesLsCmd, archivesImportCmd)
 }
 
 func SetBucks(b *local.Buckets) {
