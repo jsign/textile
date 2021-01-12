@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/textileio/textile/v2/buckets/local"
 	"github.com/textileio/textile/v2/cmd"
-	"github.com/textileio/uiprogress"
 )
 
 const Name = "buck"
@@ -19,12 +18,6 @@ const Name = "buck"
 var bucks *local.Buckets
 
 var aurora = aurora2.NewAurora(runtime.GOOS != "windows")
-
-func init() {
-	uiprogress.Empty = ' '
-	uiprogress.Fill = '-'
-
-}
 
 func Init(baseCmd *cobra.Command) {
 	baseCmd.AddCommand(
