@@ -58,7 +58,7 @@ func DefaultTextileConfig(t util.TestingTWithCleanup) core.Config {
 		EmailSessionSecret:        SessionSecret,
 		SegmentAPIKey:             os.Getenv("SEGMENT_API_KEY"),
 		SegmentPrefix:             "test_",
-		BucketArchiveMaxRepFactor: 4,
+		MaxBucketArchiveRepFactor: 4,
 	}
 }
 

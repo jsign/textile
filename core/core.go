@@ -167,8 +167,7 @@ type Config struct {
 	AddrPowergateAPI string
 
 	// Buckets
-	MaxBucketSize             int64
-	BucketArchiveMaxRepFactor int
+	MaxBucketArchiveRepFactor int
 
 	// Threads
 	MaxNumberThreadsPerOwner int
@@ -394,8 +393,7 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 		PowergateAdminToken:       conf.PowergateAdminToken,
 		ArchiveTracker:            t.archiveTracker,
 		Semaphores:                t.buckLocks,
-		MaxBucketSize:             conf.MaxBucketSize,
-		MaxBucketArchiveRepFactor: conf.BucketArchiveMaxRepFactor,
+		MaxBucketArchiveRepFactor: conf.MaxBucketArchiveRepFactor,
 	}
 
 	// Start serving
