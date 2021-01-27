@@ -69,6 +69,9 @@ func streamServerInterceptor(pre preFunc, post postFunc) grpc.StreamServerInterc
 }
 
 func (t *Textile) preUsageFunc(ctx context.Context, method string) (context.Context, error) {
+	_, span := tr.Start(ctx, "preUsage")
+	defer span.End()
+
 	if t.bc == nil {
 		return ctx, nil
 	}
@@ -213,6 +216,9 @@ func usageExhausted(cus *pb.GetCustomerResponse, key string, now time.Time) bool
 }
 
 func (t *Textile) postUsageFunc(ctx context.Context, method string) error {
+	_, span := tr.Start(ctx, "postUsage")
+	defer span.End()
+
 	if t.bc == nil {
 		return nil
 	}

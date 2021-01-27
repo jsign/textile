@@ -26,9 +26,12 @@ func (t *Textile) threadInterceptor() grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		_, span := tr.Start(ctx, "threadInterceptor")
+
 		method, _ := grpc.Method(ctx)
 		for _, ignored := range authIgnoredMethods {
 			if method == ignored {
+				span.End()
 				return handler(ctx, req)
 			}
 		}
@@ -38,6 +41,7 @@ func (t *Textile) threadInterceptor() grpc.UnaryServerInterceptor {
 			}
 		}
 		if sid, ok := common.SessionFromContext(ctx); ok && sid == t.internalHubSession {
+			span.End()
 			return handler(ctx, req)
 		}
 
@@ -152,6 +156,7 @@ func (t *Textile) threadInterceptor() grpc.UnaryServerInterceptor {
 			}
 		}
 
+		span.End()
 		// Let the request pass through.
 		res, err := handler(ctx, req)
 		if err != nil {

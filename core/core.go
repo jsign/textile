@@ -53,6 +53,11 @@ import (
 	tdb "github.com/textileio/textile/v2/threaddb"
 	"github.com/textileio/textile/v2/util"
 	"google.golang.org/grpc"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
 
 var (
@@ -121,6 +126,8 @@ var (
 		"/api.bucketsd.pb.APIService/PullPathAccessRoles",
 		"/api.bucketsd.pb.APIService/PushPathAccessRoles",
 	}
+
+	tr = otel.Tracer("core")
 )
 
 type Textile struct {
@@ -152,6 +159,8 @@ type Textile struct {
 	emailSessionBus    *broadcast.Broadcaster
 
 	conf Config
+
+	telemetryShutdown telShutdownFunc
 }
 
 type Config struct {
@@ -197,6 +206,9 @@ type Config struct {
 	CustomerioConfirmTmpl string
 	CustomerioInviteTmpl  string
 	EmailSessionSecret    string
+
+	// Telemetry
+	OTELEndpoint string
 }
 
 func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, error) {
@@ -220,6 +232,14 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 	t := &Textile{
 		conf:               conf,
 		internalHubSession: util.MakeToken(32),
+	}
+
+	if conf.OTELEndpoint != "" {
+		shutdownTelemetry, err := initTelemetry(conf.OTELEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("initing OTEL: %s", err)
+		}
+		t.telemetryShutdown = shutdownTelemetry
 	}
 
 	// Configure clients
@@ -431,6 +451,7 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 		}
 		grpcopts = []grpc.ServerOption{
 			grpcm.WithUnaryServerChain(
+				otelgrpc.UnaryServerInterceptor(),
 				auth.UnaryServerInterceptor(t.authFunc),
 				unaryServerInterceptor(t.preUsageFunc, t.postUsageFunc),
 				t.threadInterceptor(),
@@ -445,6 +466,7 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 				),
 			),
 			grpcm.WithStreamServerChain(
+				otelgrpc.StreamServerInterceptor(),
 				auth.StreamServerInterceptor(t.authFunc),
 				streamServerInterceptor(t.preUsageFunc, t.postUsageFunc),
 			),
@@ -452,8 +474,14 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 		}
 	} else {
 		grpcopts = []grpc.ServerOption{
-			grpcm.WithUnaryServerChain(auth.UnaryServerInterceptor(t.noAuthFunc)),
-			grpcm.WithStreamServerChain(auth.StreamServerInterceptor(t.noAuthFunc)),
+			grpcm.WithUnaryServerChain(
+				otelgrpc.UnaryServerInterceptor(),
+				auth.UnaryServerInterceptor(t.noAuthFunc),
+			),
+			grpcm.WithStreamServerChain(
+				auth.StreamServerInterceptor(t.noAuthFunc),
+				otelgrpc.StreamServerInterceptor(),
+			),
 		}
 	}
 	t.server = grpc.NewServer(grpcopts...)
@@ -490,13 +518,13 @@ func NewTextile(ctx context.Context, conf Config, opts ...Option) (*Textile, err
 	t.proxy = &http.Server{
 		Addr: ptarget,
 	}
-	t.proxy.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.proxy.Handler = otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if webrpc.IsGrpcWebRequest(r) ||
 			webrpc.IsAcceptableGrpcCorsRequest(r) ||
 			webrpc.IsGrpcWebSocketRequest(r) {
 			webrpc.ServeHTTP(w, r)
 		}
-	})
+	}), "grpc-proxy")
 	go func() {
 		if err := t.proxy.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("proxy error: %v", err)
@@ -613,6 +641,13 @@ func (t *Textile) Close() error {
 		return err
 	}
 	log.Info("mongo collections were shutdown")
+
+	if t.telemetryShutdown != nil {
+		if err := t.telemetryShutdown(); err != nil {
+			return err
+		}
+		log.Info("telemetry was shutdown")
+	}
 
 	return nil
 }

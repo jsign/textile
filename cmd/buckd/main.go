@@ -103,6 +103,12 @@ var (
 				Key:      "dns.token",
 				DefValue: "",
 			},
+
+			// Telemetry
+			"telemetryEndpoint": {
+				Key:      "telemetry.endpoint",
+				DefValue: "",
+			},
 		},
 		EnvPre: "BUCK",
 		Global: true,

@@ -60,13 +60,16 @@ func (t *Textile) noAuthFunc(ctx context.Context) (context.Context, error) {
 // authFunc ensures requests are authorized and attaches account
 // information for downstream handlers.
 func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bool) (context.Context, error) {
+	ctxTr, span := tr.Start(ctx, "newAuthCtx")
+	defer span.End()
+
 	sid, ok := common.SessionFromMD(ctx)
 	if ok {
 		ctx = common.NewSessionContext(ctx, sid)
 		if sid == t.internalHubSession {
 			return ctx, nil
 		}
-		session, err := t.collections.Sessions.Get(ctx, sid)
+		session, err := t.collections.Sessions.Get(ctxTr, sid)
 		if err != nil {
 			return ctx, status.Error(codes.Unauthenticated, "Invalid session")
 		}
@@ -74,13 +77,13 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 			return ctx, status.Error(codes.Unauthenticated, "Expired session")
 		}
 		if touchSession {
-			if err := t.collections.Sessions.Touch(ctx, session.ID); err != nil {
+			if err := t.collections.Sessions.Touch(ctxTr, session.ID); err != nil {
 				return ctx, err
 			}
 		}
 		ctx = mdb.NewSessionContext(ctx, session)
 
-		dev, err := t.collections.Accounts.Get(ctx, session.Owner)
+		dev, err := t.collections.Accounts.Get(ctxTr, session.Owner)
 		if err != nil {
 			return ctx, status.Error(codes.NotFound, "User not found")
 		}
@@ -88,7 +91,7 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 		var org *mdb.Account
 		orgSlug, ok := common.OrgSlugFromMD(ctx)
 		if ok {
-			isMember, err := t.collections.Accounts.IsMember(ctx, orgSlug, dev.Key)
+			isMember, err := t.collections.Accounts.IsMember(ctxTr, orgSlug, dev.Key)
 			if err != nil {
 				return ctx, err
 			}
@@ -96,7 +99,7 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 				return ctx, status.Error(codes.PermissionDenied, "User is not an org member")
 			} else {
 				var err error
-				org, err = t.collections.Accounts.GetByUsername(ctx, orgSlug)
+				org, err = t.collections.Accounts.GetByUsername(ctxTr, orgSlug)
 				if err != nil {
 					return ctx, status.Error(codes.NotFound, "Org not found")
 				}
@@ -108,7 +111,7 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 		}
 		ctx = mdb.NewAccountContext(ctx, dev, org)
 	} else if k, ok := common.APIKeyFromMD(ctx); ok {
-		key, err := t.collections.APIKeys.Get(ctx, k)
+		key, err := t.collections.APIKeys.Get(ctxTr, k)
 		if err != nil || !key.Valid {
 			return ctx, status.Error(codes.NotFound, "API key not found or is invalid")
 		}
@@ -126,7 +129,7 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 		}
 		switch key.Type {
 		case mdb.AccountKey:
-			acc, err := t.collections.Accounts.Get(ctx, key.Owner)
+			acc, err := t.collections.Accounts.Get(ctxTr, key.Owner)
 			if err != nil {
 				return ctx, status.Error(codes.NotFound, "Account not found")
 			}
@@ -148,7 +151,7 @@ func (t *Textile) newAuthCtx(ctx context.Context, method string, touchSession bo
 				if err = ukey.UnmarshalString(claims.Subject); err != nil {
 					return ctx, err
 				}
-				user, err := t.collections.Accounts.Get(ctx, ukey)
+				user, err := t.collections.Accounts.Get(ctxTr, ukey)
 				if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 					return ctx, err
 				}

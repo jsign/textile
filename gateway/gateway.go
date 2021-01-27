@@ -31,6 +31,7 @@ import (
 	"github.com/textileio/textile/v2/api/common"
 	mdb "github.com/textileio/textile/v2/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"google.golang.org/grpc"
 )
 
@@ -139,6 +140,7 @@ func (g *Gateway) Start() {
 	}
 	router.SetHTMLTemplate(temp)
 
+	router.Use(otelgin.Middleware("gateway"))
 	router.Use(location.Default())
 	router.Use(static.Serve("", &fileSystem{Assets}))
 	router.Use(serveBucket(&bucketFS{

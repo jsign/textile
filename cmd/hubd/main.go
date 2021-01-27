@@ -158,6 +158,12 @@ var (
 				Key:      "email.session_secret",
 				DefValue: "",
 			},
+
+			// Telemetry
+			"telemetryEndpoint": {
+				Key:      "telemetry.endpoint",
+				DefValue: "",
+			},
 		},
 		EnvPre: "HUB",
 		Global: true,
@@ -307,6 +313,12 @@ func init() {
 		config.Flags["emailSessionSecret"].DefValue.(string),
 		"Session secret to use when testing email APIs")
 
+	// Telemetry
+	rootCmd.PersistentFlags().String(
+		"telemetryEndpoint",
+		config.Flags["telemetryEndpoint"].DefValue.(string),
+		"Telemetry Endpoint")
+
 	err := cmd.BindFlags(config.Viper, rootCmd, config.Flags)
 	cmd.ErrCheck(err)
 }
@@ -383,6 +395,9 @@ var rootCmd = &cobra.Command{
 		customerioInviteTmpl := config.Viper.GetString("customerio.invite_template")
 		emailSessionSecret := config.Viper.GetString("email.session_secret")
 
+		// Telemetry
+		otelEndpoint := config.Viper.GetString("telemetry.endpoint")
+
 		var opts []core.Option
 		if addrThreadsMongoUri != "" {
 			if addrThreadsMongoName == "" {
@@ -429,6 +444,9 @@ var rootCmd = &cobra.Command{
 			CustomerioInviteTmpl:  customerioInviteTmpl,
 			CustomerioAPIKey:      customerioApiKey,
 			EmailSessionSecret:    emailSessionSecret,
+
+			// Telemetry
+			OTELEndpoint: otelEndpoint,
 		}, opts...)
 		cmd.ErrCheck(err)
 		textile.Bootstrap()

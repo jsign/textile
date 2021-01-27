@@ -52,7 +52,6 @@ require (
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.4
-	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rhysd/go-github-selfupdate v1.2.2
@@ -70,12 +69,19 @@ require (
 	github.com/stripe/stripe-go/v72 v72.10.0
 	github.com/textileio/dcrypto v0.0.1
 	github.com/textileio/go-assets v0.0.0-20200430191519-b341e634e2b7
-	github.com/textileio/go-ds-mongo v0.1.5-0.20201230201018-2b7fdca787a5
+	github.com/textileio/go-ds-mongo v0.1.5-0.20210114213010-c879f0451516
 	github.com/textileio/go-threads v1.0.3-0.20201216032729-f7b034a0de80
 	github.com/textileio/powergate/v2 v2.0.0
 	github.com/xakep666/mongo-migrate v0.2.1
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	go.mongodb.org/mongo-driver v1.4.1
+	go.mongodb.org/mongo-driver v1.4.4
+	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.15.1
+	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.15.1
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.15.1
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.15.1
+	go.opentelemetry.io/otel v0.16.0
+	go.opentelemetry.io/otel/exporters/otlp v0.16.0
+	go.opentelemetry.io/otel/sdk v0.16.0
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20201218084310-7d0127a74742 // indirect

@@ -7,6 +7,7 @@ import (
 	"github.com/textileio/textile/v2/mongodb/migrations"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 )
 
 const (
@@ -33,7 +34,9 @@ type Collections struct {
 
 // NewCollections gets or create store instances for active collections.
 func NewCollections(ctx context.Context, uri, database string, hub bool) (*Collections, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	opts := options.Client()
+	opts.Monitor = otelmongo.NewMonitor("hub-mongo")
+	client, err := mongo.Connect(ctx, opts.ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}

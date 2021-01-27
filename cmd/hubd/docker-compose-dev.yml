@@ -18,7 +18,7 @@ services:
       - HUB_ADDR_GATEWAY_HOST=/ip4/0.0.0.0/tcp/8006
       - HUB_ADDR_GATEWAY_URL
       - HUB_ADDR_IPFS_API=/dns4/ipfs/tcp/5001
-      - HUB_ADDR_BILLING_API=billing:10006
+      - HUB_ADDR_BILLING_API=
       - HUB_ADDR_POWERGATE_API
       - HUB_GATEWAY_SUBDOMAINS
       - HUB_BUCKETS_MAX_SIZE
@@ -27,6 +27,7 @@ services:
       - HUB_EMAIL_SESSION_SECRET=hubsession
       - HUB_SEGMENT_API_KEY
       - HUB_SEGMENT_PREFIX
+      - HUB_TELEMETRY_ENDPOINT=jaeger:55680
     ports:
       - "127.0.0.1:3006:3006"
       - "127.0.0.1:3007:3007"
@@ -39,6 +40,7 @@ services:
       - SYS_PTRACE
     depends_on:
       - mongo
+      - jaeger
   billing:
     build:
       context: ../../
@@ -87,3 +89,9 @@ services:
       - "4001:4001/udp"
       - "127.0.0.1:5001:5001"
       - "127.0.0.1:8080:8080"
+
+  jaeger:
+    image: jaegertracing/opentelemetry-all-in-one:latest
+    ports:
+      - "127.0.0.1:55680:55680"
+      - "127.0.0.1:16686:16686"
